@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kingdom League Bot - League of Legends Stats Tracker for Discord</title>
+    <meta name="description" content="A feature-rich Discord bot that brings League of Legends stats, match history, live game tracking, and AI-powered analysis directly into your Discord server.">
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #111923;
+            --bg-card: #182230;
+            --bg-card-hover: #1e2d3f;
+            --gold: #c89b3c;
+            --gold-light: #f0e6d2;
+            --blue: #0397ab;
+            --blue-light: #0ac8b9;
+            --blue-dark: #005a82;
+            --text-primary: #f0e6d2;
+            --text-secondary: #a09b8c;
+            --text-muted: #5b5a56;
+            --border: #1e2d3f;
+            --accent-red: #e84057;
+            --accent-green: #27ae60;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(10, 14, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            z-index: 100;
+            padding: 0 2rem;
+        }
+        nav .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 60px;
+        }
+        nav .logo {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-decoration: none;
+            letter-spacing: 0.5px;
+        }
+        nav .nav-links { display: flex; gap: 1.5rem; list-style: none; }
+        nav .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: color 0.2s;
+        }
+        nav .nav-links a:hover { color: var(--gold); }
+
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+        }
+        .hamburger span {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: var(--text-primary);
+            margin: 5px 0;
+            transition: 0.3s;
+        }
+
+        /* HERO */
+        .hero {
+            padding: 10rem 2rem 6rem;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(3, 151, 171, 0.08) 0%, transparent 100%);
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero .tagline {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+        .hero .cta-group { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 2rem;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background: var(--gold);
+            color: var(--bg-primary);
+        }
+        .btn-primary:hover { background: #daa940; }
+        .btn-secondary {
+            background: transparent;
+            color: var(--gold);
+            border: 1px solid var(--gold);
+        }
+        .btn-secondary:hover { background: rgba(200, 155, 60, 0.1); }
+
+        /* SECTIONS */
+        section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--gold);
+        }
+        .section-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 3rem;
+            font-size: 1.05rem;
+        }
+
+        /* ABOUT */
+        .about-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+        .about-text p {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        .about-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--blue-light);
+        }
+        .stat-card .label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* FEATURES */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 2rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .feature-card:hover {
+            border-color: var(--gold);
+            background: var(--bg-card-hover);
+        }
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* USER FLOW */
+        .flow-container {
+            position: relative;
+        }
+        .flow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+        .flow-step {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+            position: relative;
+        }
+        .flow-step-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .flow-step-number {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--gold);
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .flow-step-line {
+            width: 2px;
+            height: 60px;
+            background: var(--border);
+        }
+        .flow-step:last-child .flow-step-line { display: none; }
+        .flow-step-content {
+            padding-bottom: 2rem;
+        }
+        .flow-step-content h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+        .flow-step-content p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .flow-step-content .command-example {
+            display: inline-block;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.25rem 0.75rem;
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: var(--blue-light);
+            margin-top: 0.5rem;
+        }
+
+        /* COMMANDS */
+        .commands-section .category {
+            margin-bottom: 2.5rem;
+        }
+        .commands-section .category h3 {
+            font-size: 1.1rem;
+            color: var(--blue-light);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .command-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .command-table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid rgba(30, 45, 63, 0.5);
+            font-size: 0.9rem;
+        }
+        .command-table td:first-child {
+            font-family: 'Consolas', 'Courier New', monospace;
+            color: var(--gold);
+            white-space: nowrap;
+            width: 250px;
+        }
+        .command-table td:last-child {
+            color: var(--text-secondary);
+        }
+
+        /* SCREENSHOTS */
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        .screenshot-slot {
+            background: var(--bg-card);
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            aspect-ratio: 16/9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            overflow: hidden;
+        }
+        .screenshot-slot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+        .screenshot-slot .placeholder-text {
+            text-align: center;
+            padding: 1rem;
+        }
+        .screenshot-slot .placeholder-text span {
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.4;
+        }
+
+        /* PRIVACY */
+        .privacy-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 3rem;
+            margin-top: 2rem;
+        }
+        .privacy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .privacy-card h3 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+        .privacy-card ul {
+            list-style: none;
+            padding: 0;
+        }
+        .privacy-card ul li {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 0.35rem 0;
+            padding-left: 1.2rem;
+            position: relative;
+        }
+        .privacy-card ul li::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0.7rem;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--blue-light);
+        }
+
+        /* COMPLIANCE */
+        .compliance-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--gold);
+            border-radius: 4px;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .compliance-box h3 {
+            color: var(--gold);
+            margin-bottom: 0.75rem;
+        }
+        .compliance-box p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* FOOTER */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        footer a {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+        footer a:hover { color: var(--gold); }
+        footer p { margin-bottom: 0.5rem; }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hamburger { display: block; }
+            nav .nav-links {
+                display: none;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                right: 0;
+                background: rgba(10, 14, 20, 0.98);
+                flex-direction: column;
+                padding: 1rem 2rem;
+                border-bottom: 1px solid var(--border);
+            }
+            nav .nav-links.open { display: flex; }
+            .hero h1 { font-size: 2rem; }
+            .hero .tagline { font-size: 1rem; }
+            .about-content { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: 1fr; }
+            .screenshots-grid { grid-template-columns: 1fr; }
+            .privacy-grid { grid-template-columns: 1fr; }
+            .command-table td:first-child { width: auto; }
+            section { padding: 3rem 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+    <div class="nav-inner">
+        <a href="#" class="logo">Kingdom League Bot</a>
+        <button class="hamburger" onclick="document.querySelector('.nav-links').classList.toggle('open')" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="#about">About</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#user-flow">User Flow</a></li>
+            <li><a href="#commands">Commands</a></li>
+            <li><a href="#screenshots">Screenshots</a></li>
+            <li><a href="#privacy">Privacy</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <h1>Kingdom League Bot</h1>
+    <p class="tagline">A League of Legends stats tracker that brings ranked stats, match history, live game data, and AI-powered analysis directly into your Discord server.</p>
+    <div class="cta-group">
+        <a href="#user-flow" class="btn btn-primary">See How It Works</a>
+        <a href="#commands" class="btn btn-secondary">View Commands</a>
+    </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about">
+    <h2 class="section-title">About</h2>
+    <p class="section-subtitle">Bringing League of Legends data to your Discord community.</p>
+    <div class="about-content">
+        <div class="about-text">
+            <p>Kingdom League Bot is a feature-rich Discord bot that connects your server members' Discord accounts to their Riot Games accounts, enabling instant access to ranked stats, match history, live game tracking, and more &mdash; all without leaving Discord.</p>
+            <p>Players link their accounts through a secure icon-based verification process, then use simple commands to look up stats for themselves or any linked server member. The bot also runs background services for automated match notifications, daily performance awards, and weekly leaderboard recaps.</p>
+            <p>Built for EUW communities, the bot uses the official Riot Games API and stores only the minimal data needed to operate &mdash; Discord IDs and Riot IDs in a local SQLite database.</p>
+        </div>
+        <div class="about-stats">
+            <div class="stat-card">
+                <div class="number">50+</div>
+                <div class="label">Commands</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">9</div>
+                <div class="label">Feature Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">AI</div>
+                <div class="label">Powered Analysis</div>
+            </div>
+            <div class="stat-card">
+                <div class="number">24/7</div>
+                <div class="label">Match Tracking</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+    <h2 class="section-title">Features</h2>
+    <p class="section-subtitle">Everything your Discord server needs for League of Legends.</p>
+    <div class="features-grid">
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#9876;</span>
+            <h3>Ranked Stats</h3>
+            <p>View Solo/Duo and Flex ranks, LP gains, win streaks, tilt analysis, and detailed performance stats from recent games. Track peak ranks over time.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#128214;</span>
+            <h3>Match History</h3>
+            <p>Check recent matches with KDA, champion played, and game outcome. See today's games at a glance with MVP and Ace badges for standout performances.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#128100;</span>
+            <h3>Player Profiles</h3>
+            <p>Detailed profiles with champion mastery, peak rank vs current rank, milestone tracking, and best/worst champion breakdowns.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#127918;</span>
+            <h3>Live Game Tracking</h3>
+            <p>See active games in real-time with team compositions, player ranks, and an AI-driven win probability prediction based on MMR, champion mastery, and recent performance.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#128279;</span>
+            <h3>Account Linking</h3>
+            <p>Secure icon-based verification links your Discord account to your Riot ID. Change your summoner icon to a specified icon to prove account ownership.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#129309;</span>
+            <h3>Social &amp; Comparison</h3>
+            <p>Compare stats head-to-head with other players, track win rates when playing together (synergy), and see who comes out on top.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#127942;</span>
+            <h3>Custom Games</h3>
+            <p>Full custom game management with scheduling, reaction-based signups, MMR-balanced team building, result tracking with AI screenshot analysis, and leaderboards.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#127775;</span>
+            <h3>Daily &amp; Weekly Awards</h3>
+            <p>Automated Player of the Day/Week and Loser of the Day/Week announcements. Celebrate the best performances and roast the worst &mdash; automatically.</p>
+        </div>
+        <div class="feature-card">
+            <span class="feature-icon" aria-hidden="true">&#129302;</span>
+            <h3>AI Analysis</h3>
+            <p>AI-powered game reviews that analyze your match screenshots, provide personalized champion recommendations, and extract stats from screenshots using vision.</p>
+        </div>
+    </div>
+</section>
+
+<!-- USER FLOW -->
+<section id="user-flow">
+    <h2 class="section-title">User Flow</h2>
+    <p class="section-subtitle">How users link their accounts and interact with the bot.</p>
+    <div class="flow-container">
+        <div class="flow-steps">
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">1</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Invite the Bot</h3>
+                    <p>A server admin adds the bot to their Discord server. The bot joins and is ready to accept commands from any member.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">2</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Link Your Riot Account</h3>
+                    <p>A user types the link command with their Riot ID (game name and tagline). The bot looks up the account via the Riot API to confirm it exists.</p>
+                    <div class="command-example">!link YourName#EUW</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">3</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Verify Account Ownership</h3>
+                    <p>The bot responds with a specific summoner icon number (one of the free default icons, 1&ndash;25). The user must open their League client and change their summoner icon to the requested icon within 10 minutes. This proves the user owns the account.</p>
+                    <p style="margin-top:0.5rem;">Example: <em>"Please change your summoner icon to icon #14, then type !verify"</em></p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">4</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Complete Verification</h3>
+                    <p>The user types the verify command. The bot checks the Riot API to confirm the summoner icon matches the requested icon. If it matches, the account is linked. The Discord ID and Riot ID are stored in the database.</p>
+                    <div class="command-example">!verify</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">5</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Use Commands</h3>
+                    <p>Once linked, the user can run any command. Commands work on themselves by default, or they can mention another linked server member to look up that player's stats.</p>
+                    <div class="command-example">!rank</div>
+                    <div class="command-example" style="margin-left:0.5rem;">!rank @friend</div>
+                    <div class="command-example" style="margin-left:0.5rem;">!history 5</div>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">6</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Automated Tracking</h3>
+                    <p>The bot runs background services that automatically track matches, send notifications when games finish, and post daily/weekly awards &mdash; all without user input. Admins configure the notification channel once with <span class="command-example">!setchannel</span>.</p>
+                </div>
+            </div>
+            <div class="flow-step">
+                <div class="flow-step-indicator">
+                    <div class="flow-step-number">7</div>
+                    <div class="flow-step-line"></div>
+                </div>
+                <div class="flow-step-content">
+                    <h3>Unlink Anytime</h3>
+                    <p>Users can unlink their account at any time. This removes their Discord-to-Riot association from the database. They can re-link with a different account if needed.</p>
+                    <div class="command-example">!unlink</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COMMANDS -->
+<section id="commands">
+    <h2 class="section-title">Commands</h2>
+    <p class="section-subtitle">Full command reference. All commands use the <code style="color:var(--gold);">!</code> prefix.</p>
+
+    <div class="commands-section">
+
+        <div class="category">
+            <h3>Account Management</h3>
+            <table class="command-table">
+                <tr><td>!link name#tag</td><td>Link your Discord account to your Riot account (starts verification)</td></tr>
+                <tr><td>!verify</td><td>Complete account verification by confirming summoner icon change</td></tr>
+                <tr><td>!unlink</td><td>Remove the link between your Discord and Riot accounts</td></tr>
+                <tr><td>!me</td><td>Show your profile overview (rank, level, top champions)</td></tr>
+                <tr><td>!settings</td><td>Manage account settings (e.g. toggle flex rank display)</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Ranked Stats</h3>
+            <table class="command-table">
+                <tr><td>!rank [@user]</td><td>Show ranked stats with peak rank tracking</td></tr>
+                <tr><td>!lp</td><td>Show LP gains and losses for the day</td></tr>
+                <tr><td>!streak [@user]</td><td>Show current win/loss streak</td></tr>
+                <tr><td>!tilt [@user]</td><td>Analyze tilt level based on recent games (0&ndash;100 score)</td></tr>
+                <tr><td>!stats [@user]</td><td>Detailed stats from last 20 games (KDA, CS, damage, vision)</td></tr>
+                <tr><td>!leaderboard</td><td>Show server ranking leaderboard (top 10 players)</td></tr>
+                <tr><td>!history [@user] [count]</td><td>Show match history with MVP/Ace badges (up to 10 games)</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Player Profile</h3>
+            <table class="command-table">
+                <tr><td>!profile [@user]</td><td>Detailed player profile</td></tr>
+                <tr><td>!mastery [@user]</td><td>Show top champion masteries</td></tr>
+                <tr><td>!peakrank [@user]</td><td>Show peak rank vs current rank with progress</td></tr>
+                <tr><td>!milestones [@user]</td><td>Track ranking milestones over time</td></tr>
+                <tr><td>!champion [@user]</td><td>Show stats for a specific champion</td></tr>
+                <tr><td>!best [@user]</td><td>Best performing champions</td></tr>
+                <tr><td>!worst [@user]</td><td>Worst performing champions</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Live Game</h3>
+            <table class="command-table">
+                <tr><td>!livegame [@user]</td><td>Show active game with teams, ranks, and win probability</td></tr>
+                <tr><td>!livegames</td><td>Show all active games for linked players in the server</td></tr>
+                <tr><td>!clash [@user]</td><td>Show Clash tournament info and team details</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Social &amp; Comparison</h3>
+            <table class="command-table">
+                <tr><td>!compare name#tag name#tag</td><td>Compare stats between two players side by side</td></tr>
+                <tr><td>!headtohead @user</td><td>Head-to-head comparison with win rates</td></tr>
+                <tr><td>!synergy name#tag name#tag</td><td>Analyze team synergy in games played together</td></tr>
+                <tr><td>!opgg [@user]</td><td>Get a direct link to a player's op.gg profile</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Custom Games</h3>
+            <table class="command-table">
+                <tr><td>!customs</td><td>Show custom game leaderboard</td></tr>
+                <tr><td>!customs tonight [time]</td><td>Schedule a custom game for tonight</td></tr>
+                <tr><td>!customs go</td><td>Start a scheduled custom game</td></tr>
+                <tr><td>!customs add</td><td>Report a match result (supports AI screenshot analysis)</td></tr>
+                <tr><td>!customs stats [@user]</td><td>Show detailed custom game stats</td></tr>
+                <tr><td>!teams</td><td>Auto-balance teams based on estimated MMR</td></tr>
+                <tr><td>!mmr</td><td>Show estimated MMR for custom game balancing</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Daily &amp; Weekly Awards</h3>
+            <table class="command-table">
+                <tr><td>!potd</td><td>Player of the Day &mdash; best performance today</td></tr>
+                <tr><td>!lotd</td><td>Loser of the Day &mdash; worst performance today</td></tr>
+                <tr><td>!potw</td><td>Player of the Week (auto-posted Sundays at 7pm UK)</td></tr>
+                <tr><td>!lotw</td><td>Loser of the Week (auto-posted Sundays at 7pm UK)</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>AI-Powered</h3>
+            <table class="command-table">
+                <tr><td>!review</td><td>AI game analysis &mdash; attach a match screenshot for a full review</td></tr>
+                <tr><td>!recommend</td><td>AI-powered champion recommendations based on your playstyle</td></tr>
+            </table>
+        </div>
+
+        <div class="category">
+            <h3>Utility &amp; Admin</h3>
+            <table class="command-table">
+                <tr><td>!help</td><td>Show all available commands</td></tr>
+                <tr><td>!ping</td><td>Check if the bot is online</td></tr>
+                <tr><td>!setchannel</td><td>Set the notification channel for match updates and awards</td></tr>
+            </table>
+        </div>
+
+    </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section id="screenshots">
+    <h2 class="section-title">Screenshots</h2>
+    <p class="section-subtitle">See the bot in action.</p>
+    <div class="screenshots-grid">
+        <div class="screenshot-slot">
+            <img src="rank.png" alt="Rank command showing player rank, LP, and peak rank">
+        </div>
+        <div class="screenshot-slot">
+            <img src="!history.png" alt="Match history showing recent games with KDA and outcomes">
+        </div>
+        <div class="screenshot-slot">
+            <img src="!leaderboard.png" alt="Server leaderboard showing top 10 ranked players">
+        </div>
+        <div class="screenshot-slot">
+            <img src="!help.png" alt="Help command showing all available command categories">
+        </div>
+    </div>
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem; text-align: center;">
+        Screenshots from a live Discord server running the bot.
+    </p>
+</section>
+
+<!-- PRIVACY POLICY -->
+<section id="privacy">
+    <h2 class="section-title">Privacy Policy</h2>
+    <p class="section-subtitle">Transparency about how your data is handled.</p>
+    <div class="privacy-section">
+        <div class="privacy-grid">
+            <div class="privacy-card">
+                <h3>Data We Collect</h3>
+                <ul>
+                    <li>Your Discord user ID (numeric identifier)</li>
+                    <li>Your Riot ID (game name and tagline)</li>
+                    <li>Ranked stats and match data retrieved from the Riot API</li>
+                    <li>Custom game results you submit (K/D/A, champion, team)</li>
+                    <li>LP snapshots for daily tracking</li>
+                </ul>
+            </div>
+            <div class="privacy-card">
+                <h3>How Data Is Stored</h3>
+                <ul>
+                    <li>All data is stored in a local SQLite database on the bot's server</li>
+                    <li>No cloud databases or third-party storage services are used</li>
+                    <li>Database is backed up daily for reliability</li>
+                    <li>The bot server is hosted on Oracle Cloud with restricted access</li>
+                </ul>
+            </div>
+            <div class="privacy-card">
+                <h3>Data We Do NOT Collect</h3>
+                <ul>
+                    <li>We do not collect your Riot account password or login credentials</li>
+                    <li>We do not read or store your Discord messages</li>
+                    <li>We do not track your activity outside of League of Legends</li>
+                    <li>We do not collect personally identifiable information (name, email, etc.)</li>
+                </ul>
+            </div>
+            <div class="privacy-card">
+                <h3>Your Rights</h3>
+                <ul>
+                    <li>You can unlink your account at any time using <code style="color:var(--blue-light)">!unlink</code></li>
+                    <li>Unlinking removes your Discord-to-Riot association from the database</li>
+                    <li>Your data is never sold, shared with third parties, or used for advertising</li>
+                    <li>You can request full data deletion by contacting the bot operator</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIOT API COMPLIANCE -->
+    <div class="compliance-box">
+        <h3>Riot Games API Compliance</h3>
+        <p>This application uses the Riot Games API in accordance with the <a href="https://developer.riotgames.com/policies/general" style="color:var(--blue-light)">Riot Games API Terms of Service</a>.</p>
+        <p>We do not store any data beyond what is necessary to provide the bot's functionality. All game data is retrieved in real-time from the official Riot Games API and displayed only within Discord.</p>
+        <p>Account verification is performed using the summoner icon method &mdash; no passwords or login credentials are ever requested or stored.</p>
+        <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.8rem;">Kingdom League Bot is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <p>Kingdom League Bot &mdash; A League of Legends stats tracker for Discord communities.</p>
+    <p><a href="https://github.com/EyrasStack/lol-discord-bot">GitHub Repository</a></p>
+    <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.75rem;">Kingdom League Bot is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.</p>
+</footer>
+
+</body>
+</html>
