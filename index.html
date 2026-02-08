@@ -327,6 +327,11 @@
             justify-content: center;
             color: var(--text-muted);
             font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .screenshot-slot:hover {
+            border-color: var(--gold);
             overflow: hidden;
         }
         .screenshot-slot img {
@@ -403,6 +408,28 @@
             color: var(--text-secondary);
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
+        }
+
+        /* LIGHTBOX */
+        .lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 200;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+        }
+        .lightbox.open { display: flex; }
+        .lightbox img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
         }
 
         /* FOOTER */
@@ -839,5 +866,21 @@
     <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.75rem;">Kingdom League Bot is not endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties.</p>
 </footer>
 
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+    <img id="lightbox-img" src="" alt="">
+</div>
+<script>
+document.querySelectorAll('.screenshot-slot img').forEach(function(img) {
+    img.parentElement.addEventListener('click', function() {
+        document.getElementById('lightbox-img').src = img.src;
+        document.getElementById('lightbox-img').alt = img.alt;
+        document.getElementById('lightbox').classList.add('open');
+    });
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('open');
+});
+</script>
 </body>
 </html>
